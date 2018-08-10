@@ -8,7 +8,7 @@ import yaml
 script_dir = os.path.dirname(__file__)
 credentials = yaml.load(open(os.path.join(script_dir, 'credentials.yaml')))
 
-DEFAULT_MESSAGE_USER_FILTER = 'U75GYH87J'
+DEFAULT_MESSAGE_USERS_FILTER = 'U75GYH87J,U75UEBVGE'
 DEFAULT_CHANNEL_ID = 'C03DZSU21'
 DEFAULT_REACTION = 'onit'
 DEFAULT_MESSAGE_COUNT = 3000
@@ -29,9 +29,9 @@ def add_two_column_row(column_1, column_2, csv):
 def filter_messages(messages, user_filter):
   messages_to_filter = []
   if user_filter is not None:
-    print 'Filtering for user {}'.format(user_filter)
+    print 'Filtering {} messages for user(s) {}'.format(len(messages), user_filter)
     for message in messages:
-      if 'user' in message and message['user'] == user_filter:
+      if 'user' in message and message['user'] in user_filter.split(','):
         messages_to_filter.append(message)
   else:
     print 'Not filtering by user ID'
@@ -159,12 +159,12 @@ def fetch_and_write_data(filename, channel_id, count):
   help='Name of emoji/reaction to run a per user analysis on'
 )
 @click.option(
-  '-u', '--user_to_filter',
-  default=DEFAULT_MESSAGE_USER_FILTER,
+  '-u', '--users_to_filter',
+  default=DEFAULT_MESSAGE_USERS_FILTER,
   type=click.STRING,
-  help='Slack User API ID to filter messages on (if provided, only reactions on this user will be reported). Pass an empty string to search all messages.'
+  help='Comma separated string of Slack User API ID(s) to filter messages on (if provided, only reactions on this user(s) will be reported). Pass an empty string to search all messages.'
 )
-def main(fetch_data, number_of_messages, channel_id, filename, run_analysis, emoji_name, user_to_filter):
+def main(fetch_data, number_of_messages, channel_id, filename, run_analysis, emoji_name, users_to_filter):
   print 'Slack Emoji User Analysis'
   print '____________________'
   if not fetch_data and not run_analysis:
@@ -176,7 +176,7 @@ def main(fetch_data, number_of_messages, channel_id, filename, run_analysis, emo
   if run_analysis:
     with open(os.path.join(script_dir, 'input/{}.json'.format(filename))) as json_data:
       data = json.load(json_data)
-      filtered_messages = filter_messages(data['messages'], (user_to_filter or None))
+      filtered_messages = filter_messages(data['messages'], (users_to_filter or None))
       assignee_list = create_assignee_list(filtered_messages, data['users'], emoji_name)
       analysis_csv = create_csv(filename)
       calculate_and_write_totals(assignee_list, analysis_csv)
